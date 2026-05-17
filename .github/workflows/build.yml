@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [c2s, c2slte, c1s, c1slte, z3s, y2s, y2slte, x1s, x1slte, r8s]
+        target: [r8s]
 
     steps:
       - name: Checkout source
@@ -38,11 +38,13 @@ jobs:
           sudo apt clean
 
       - name: Make build script executable
-        run: chmod +x build.sh
+        run: |
+         rm -rf KernelSU-Next
+         chmod +x build.sh
 
       - name: Build kernel (${{ matrix.target }})
         run: |
-          ./build.sh -m ${{ matrix.target }} -k y -r n
+          ./build.sh -m ${{ matrix.target }} -k n -r n
 
       - name: Upload artifact (${{ matrix.target }})
         uses: actions/upload-artifact@v4
