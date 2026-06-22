@@ -1,71 +1,90 @@
 name: Build ArtisanKRNL
 
 on:
-  workflow_dispatch:
+ workflow_dispatch:
+
+permissions:
+ contents: write
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
+ build:
+  runs-on: ubuntu-24.04
 
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [r8s,y2s]
+  strategy:
+   fail-fast: false
+   matrix:
+    target: [r8s, y2s]
 
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v7
-        with:
-          submodules: recursive
-          fetch-depth: 1
+ steps:
+   - name: Checkout source
+     uses: actions/checkout@v4
+     with:
+      submodules: recursive
+      fetch-depth: 1
 
-      - name: Set up build environment
-        run: |
-          sudo apt update
-          DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
-            p7zip-full jq attr ccache clang ffmpeg golang \
-            libbrotli-dev libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
-            libzstd-dev linux-modules-extra-$(uname -r) lld protobuf-compiler webp \
-            curl xxd patchelf flex bison libarchive-tools build-essential pcre2-utils
-          sudo modprobe erofs f2fs
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+   - name: Set up build environment
+     run: |
+      sudo apt update
+      DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
+        p7zip-full jq attr ccache clang ffmpeg golang \
+        libbrotli-dev libgtest-dev libprotobuf-dev libunwind-dev libpcre2-dev \
+        libzstd-dev linux-modules-extra-$(uname -r) lld protobuf-compiler webp \
+        curl xxd patchelf flex bison libarchive-tools build-essential pcre2-utils
 
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo apt clean
+      sudo modprobe erofs || true
+      sudo modprobe f2fs || true
 
-      - name: Make build script executable
-        run: |
-         rm -rf KernelSU-Next
-         bash clean_hook.sh
-         curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
-         chmod +x build.sh
-         bash susfs_inline_hook_patches.sh
-         patch -p1 -F3 < susfs_patch_to_4.19.patch
+      git config --global user.name "github-actions[bot]"
+      git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Build kernel (${{ matrix.target }})
-        run: |
-          ./build.sh -m ${{ matrix.target }} -k y -r n
+   - name: Free disk space
+     run: |
+      sudo rm -rf /usr/share/dotnet
+      sudo rm -rf /opt/ghc
+      sudo apt clean
 
-      - name: Upload artifact (${{ matrix.target }})
-        uses: actions/upload-artifact@v4
-        with:
-          name: kernel-${{ matrix.target }}
-          path: build/out/${{ matrix.target }}/*.zip
+   - name: Prepare source
+     run: |
+      rm -rf KernelSU-Next
 
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v2
-        with:
-         name: Kernel SUSFS r8s - ${{ github.run_id }}
-         path: build/out/${{ matrix.target }}/*.zip
-         body: |
-          ## Kernel SUSFS Build
+      bash clean_hook.sh
 
-          Device:
-          - Samsung r8s
+      curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
 
-          Commit:
-          ${{ github.sha }}
+      chmod +x build.sh
+
+      bash susfs_inline_hook_patches.sh
+
+      patch -p1 -F3 < susfs_patch_to_4.19.patch
+
+   - name: Build kernel (${{ matrix.target }})
+     run: |
+      ./build.sh -m ${{ matrix.target }} -k y -r n
+
+   - name: Upload artifact (${{ matrix.target }})
+     uses: actions/upload-artifact@v4
+     with:
+      name: kernel-${{ matrix.target }}
+      path: build/out/${{ matrix.target }}/*.zip
+
+   - name: Upload Release (${{ matrix.target }})
+     uses: softprops/action-gh-release@v2
+     with:
+      files: build/out/${{ matrix.target }}/*.zip
+      tag_name: artisan-${{ matrix.target }}-${{ github.run_id }}
+      name: ArtisanKRNL ${{ matrix.target }} - Build ${{ github.run_id }}
+      body: |
+        ArtisanKRNL Build
+
+        Device: ${{ matrix.target }}
+
+        Commit:
+        ${{ github.sha }}
+
+        Workflow:
+        ${{ github.workflow }}
+
+        Run ID:
+        ${{ github.run_id }}
+  
+       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
