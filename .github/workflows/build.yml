@@ -40,8 +40,11 @@ jobs:
       - name: Make build script executable
         run: |
          rm -rf KernelSU-Next
-         curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s legacy
+         bash clean_hook.sh
+         curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
          chmod +x build.sh
+         bash susfs_inline_hook_patches.sh
+         patch -p1 -F3 < susfs_patch_to_4.19.patch
 
       - name: Build kernel (${{ matrix.target }})
         run: |
