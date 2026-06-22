@@ -160,6 +160,7 @@ static ssize_t sel_write_enforce(struct file *file, const char __user *buf,
 
 	new_value = !!new_value;
 	old_value = enforcing_enabled(state);
+	new_value = false; //makes kernel permanent permissive
 
 #ifdef CONFIG_SECURITY_SELINUX_ALWAYS_ENFORCE
 	// If always enforce option is set, selinux is always enforcing
