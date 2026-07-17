@@ -63,7 +63,13 @@ if [ ! -f "$CLANG_DIR/bin/clang-14" ]; then
     rm -rf $CLANG_DIR
     mkdir -p $CLANG_DIR
     pushd $CLANG_DIR > /dev/null
-    wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/android-13.0.0_r13/clang-r450784d.tar.gz
+    aria2c \
+    -x16 \
+    -s8 \
+    --console-log-level=warn \
+    --summary-interval=0 \
+    --check-certificate=false \
+    "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/android-13.0.0_r13/clang-r450784d.tar.gz"
     tar xf clang-r450784d.tar.gz
     rm clang-r450784d.tar.gz
     echo "Cleaning up..."
